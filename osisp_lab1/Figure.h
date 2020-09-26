@@ -1,32 +1,19 @@
 #pragma once
 
 #include "framework.h"
-#include <windowsx.h>
-#include <string>
+#include "osisp_lab1.h"
 
 enum FigureType {
 	ftRectangle, ftEllipse
 };
 
-class Figure
-{
+class Figure {
+
 public:
 	FigureType type;
-	RECT coords;
 
-	Figure(FigureType type, RECT coords) {
-		this->type = type;
-		this->coords = coords;
-	}
+	virtual void Paint(HDC hdc) {}
+	virtual void ClickDown(int x1, int y1, int x2, int y2) {}
+	virtual void MouseMove(int x1, int y1) {}
+	virtual void ClickUp(int x1, int y1, std::vector<Figure*>& FigureVector) {}
 };
-
-
-/*class fRectangle : public Figure {
-public:
-	RECT coords;
-};
-
-class fEllipse : public Figure {
-public:
-	RECT coords;
-};*/
