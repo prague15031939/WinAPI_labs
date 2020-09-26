@@ -27,9 +27,15 @@
     <ClInclude Include="osisp_lab1.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
+    <ClInclude Include="Figure.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="osisp_lab1.cpp">
+      <Filter>Исходные файлы</Filter>
+    </ClCompile>
+    <ClCompile Include="Figure.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
   </ItemGroup>

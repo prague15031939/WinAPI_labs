@@ -1,5 +1,6 @@
 ﻿#include "framework.h"
 #include "osisp_lab1.h"
+#include <vector>
 
 #define MAX_LOADSTRING 100
 
@@ -7,16 +8,15 @@ HINSTANCE hInst;
 WCHAR szTitle[MAX_LOADSTRING];                 
 WCHAR szWindowClass[MAX_LOADSTRING];           
 
+std::vector<Figure*> FigureVector;
 RECT globalRectangle;
-HBITMAP hBitmap = NULL;
+BOOL StartedDrawing;
+FigureType CurrentFigureType;
 
 ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
-
-BOOL CreateFunction(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
-BOOL MovementFunction(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                      _In_opt_ HINSTANCE hPrevInstance,
@@ -96,8 +96,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     {
     case WM_CREATE:
     {
-        CreateFunction(hWnd, message, wParam, lParam);
-        hBitmap = (HBITMAP)LoadImage(hInst, L"ricardo.bmp", IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
+        CurrentFigureType = ftRectangle;
+        StartedDrawing = false;
     }
     break;
     case WM_COMMAND:
@@ -118,79 +118,113 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         }
         break;
     case WM_KEYDOWN:
-        {
-            MovementFunction(hWnd, message, wParam, lParam);
-            InvalidateRect(hWnd, NULL, true);
-        }
-        break;
+    {
+        SwitchFigureTypeFunction(hWnd, message, wParam, lParam);
+    }
+    break;
+    case WM_LBUTTONDOWN:
+    {
+        ClickDownFunction(hWnd, message, wParam, lParam);
+        InvalidateRect(hWnd, NULL, true);
+    }
+    break;
+    case WM_LBUTTONUP:
+    {
+        ClickUpFunction(hWnd, message, wParam, lParam);
+        InvalidateRect(hWnd, NULL, true);
+    }
+    break;
+    case WM_MOUSEMOVE:
+    {
+        PullFunction(hWnd, message, wParam, lParam);
+        InvalidateRect(hWnd, NULL, true);
+    }
+    break;
     case WM_PAINT:
-        {
-            PAINTSTRUCT ps;
-            HDC hdc = BeginPaint(hWnd, &ps);
+    {
+        PAINTSTRUCT ps;
+        HDC hdc = BeginPaint(hWnd, &ps);
 
-            BITMAP          bitmap;
-            HDC             hdcMem;
-            HGDIOBJ         oldBitmap;
-
-            hdcMem = CreateCompatibleDC(hdc);
-            oldBitmap = SelectObject(hdcMem, hBitmap);
-
-            GetObject(hBitmap, sizeof(bitmap), &bitmap);
-            BitBlt(hdc, globalRectangle.left, globalRectangle.top, bitmap.bmWidth, bitmap.bmHeight, hdcMem, 0, 0, SRCCOPY);
-
-            SelectObject(hdcMem, oldBitmap);
-            DeleteDC(hdcMem);
-
-            EndPaint(hWnd, &ps);
+        for (int i = 0; i < FigureVector.size(); i++) {
+            if (FigureVector[i]->type == ftRectangle)
+                Rectangle(hdc, FigureVector[i]->coords.left, FigureVector[i]->coords.top, FigureVector[i]->coords.right, FigureVector[i]->coords.bottom);
+            else if (FigureVector[i]->type == ftEllipse)
+                Ellipse(hdc, FigureVector[i]->coords.left, FigureVector[i]->coords.top, FigureVector[i]->coords.right, FigureVector[i]->coords.bottom);
         }
-        break;
-    case WM_DESTROY:
+        if (StartedDrawing) {
+            if (CurrentFigureType == ftRectangle)
+                Rectangle(hdc, globalRectangle.left, globalRectangle.top, globalRectangle.right, globalRectangle.bottom);
+            else if (CurrentFigureType == ftEllipse)
+                Ellipse(hdc, globalRectangle.left, globalRectangle.top, globalRectangle.right, globalRectangle.bottom);
+        }
+
+        EndPaint(hWnd, &ps);
+    }
+    break;
+    case WM_DESTROY: 
+    {
         PostQuitMessage(0);
-        break;
+    }
+    break;
     default:
         return DefWindowProc(hWnd, message, wParam, lParam);
     }
     return 0;
 }
 
-BOOL CreateFunction(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam) 
+BOOL SwitchFigureTypeFunction(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam) 
 {
-    globalRectangle.left = 200;
-    globalRectangle.top = 200;
-    globalRectangle.right = 250;
-    globalRectangle.bottom = 250;
+    if (!StartedDrawing) {
+        switch (wParam) {
+        case 0x45:
+            CurrentFigureType = ftEllipse;
+            break;
+        case 0x52:
+            CurrentFigureType = ftRectangle;
+            break;
+        }
+    }
 
     return true;
 }
 
-BOOL MovementFunction(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
+BOOL ClickDownFunction(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
-    switch (wParam) {
-    case VK_DOWN:
-    {
-        globalRectangle.top += 10;
-        globalRectangle.bottom += 10;
+    int xPos = GET_X_LPARAM(lParam);
+    int yPos = GET_Y_LPARAM(lParam);
+    globalRectangle.left = xPos;
+    globalRectangle.top = yPos;
+    globalRectangle.right = xPos;
+    globalRectangle.bottom = yPos;
+    StartedDrawing = true;
+
+    return true;
+}
+
+BOOL PullFunction(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
+{
+    if (wParam == MK_LBUTTON) {
+        int xPos = GET_X_LPARAM(lParam);
+        int yPos = GET_Y_LPARAM(lParam);
+        globalRectangle.right = xPos;
+        globalRectangle.bottom = yPos;
     }
-    break;
-    case VK_UP:
-    {
-        globalRectangle.top -= 10;
-        globalRectangle.bottom -= 10;
-    }
-    break;
-    case VK_RIGHT:
-    {
-        globalRectangle.right += 10;
-        globalRectangle.left += 10;
-    }
-    break;
-    case VK_LEFT:
-    {
-        globalRectangle.left -= 10;
-        globalRectangle.right -= 10;
-    }
-    break;
-    }
+
+    return true;
+}
+
+BOOL ClickUpFunction(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
+{
+    int xPos = GET_X_LPARAM(lParam);
+    int yPos = GET_Y_LPARAM(lParam);
+    globalRectangle.right = xPos;
+    globalRectangle.bottom = yPos;
+
+    Figure* figure = new Figure(CurrentFigureType, globalRectangle);
+    FigureVector.push_back(figure);
+
+    StartedDrawing = false;
+    globalRectangle.left = globalRectangle.right = globalRectangle.top = globalRectangle.bottom = 0;
 
     return true;
 }
