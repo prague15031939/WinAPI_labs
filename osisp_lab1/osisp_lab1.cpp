@@ -174,6 +174,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             onPaint(memDC, CurrentFigure);
         }
 
+        HFONT hFont = CreateFont(36, 0, 0, 0, FW_DONTCARE, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_OUTLINE_PRECIS,
+            CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, VARIABLE_PITCH, TEXT("Gill Sans MT"));
+        SelectObject(memDC, hFont);
+
+        RECT rect;
+        SetRect(&rect, 20, 0, 600, 200);
+        SetTextColor(memDC, RGB(247, 36, 100));
+        DrawText(memDC, TEXT("prague custom paint"), -1, &rect, DT_NOCLIP);
+
         BitBlt(hdc, 0, 0, lpRect.right, lpRect.bottom, memDC, 0, 0, SRCCOPY);
         SelectObject(memDC, hOld);
         DeleteObject(hBM);
