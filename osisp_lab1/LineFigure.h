@@ -3,13 +3,14 @@
 #include "Figure.h"
 #include "framework.h"
 
-class RectangleFigure : public Figure {
+class LineFigure : public Figure {
 
 public:
 	RECT coords;
 
 	void Paint(HDC hdc) override {
-		Rectangle(hdc, coords.left, coords.top, coords.right, coords.bottom);
+		MoveToEx(hdc, coords.left, coords.top, NULL);
+		LineTo(hdc, coords.right, coords.bottom);
 	}
 
 	void ClickDown(int x1, int y1, int x2, int y2) override {

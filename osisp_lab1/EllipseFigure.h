@@ -27,6 +27,7 @@ public:
 	void ClickUp(int x1, int y1, std::vector<Figure*>& FigureVector) override {
 		coords.right = x1;
 		coords.bottom = y1;
+		if (coords.left == coords.right && coords.top == coords.bottom) return;
 		FigureVector.push_back(this);
 	}
 };

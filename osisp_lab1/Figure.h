@@ -3,9 +3,9 @@
 #include "framework.h"
 #include "osisp_lab1.h"
 
-enum FigureType {
-	ftRectangle, ftEllipse
-};
+typedef enum {
+	ftRectangle, ftEllipse, ftLine, ftPolyline
+} FigureType;
 
 class Figure {
 
@@ -16,4 +16,5 @@ public:
 	virtual void ClickDown(int x1, int y1, int x2, int y2) {}
 	virtual void MouseMove(int x1, int y1) {}
 	virtual void ClickUp(int x1, int y1, std::vector<Figure*>& FigureVector) {}
+	virtual void RClickDown(int x1, int y1) {}
 };

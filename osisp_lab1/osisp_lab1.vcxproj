@@ -142,7 +142,9 @@
     <ClInclude Include="EllipseFigure.h" />
     <ClInclude Include="Figure.h" />
     <ClInclude Include="framework.h" />
+    <ClInclude Include="LineFigure.h" />
     <ClInclude Include="osisp_lab1.h" />
+    <ClInclude Include="PolylineFigure.h" />
     <ClInclude Include="RectangleFigure.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="targetver.h" />
