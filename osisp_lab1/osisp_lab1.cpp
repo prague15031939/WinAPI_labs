@@ -140,23 +140,42 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         InvalidateRect(hWnd, NULL, true);
     }
     break;
+    case WM_ERASEBKGND:
+    {
+        InvalidateRect(hWnd, NULL, FALSE);
+    }
+    break;
     case WM_PAINT:
     {
         PAINTSTRUCT ps;
         HDC hdc = BeginPaint(hWnd, &ps);
 
+        HDC memDC = CreateCompatibleDC(hdc);
+        RECT lpRect;
+        GetClientRect(hWnd, &lpRect);
+        HBITMAP hBM = CreateCompatibleBitmap(hdc, lpRect.right, lpRect.bottom);
+        HANDLE hOld = SelectObject(memDC, hBM);
+        RECT r;
+        SetRect(&r, 0, 0, lpRect.right, lpRect.bottom);
+        FillRect(memDC, &r, (HBRUSH)GetStockObject(WHITE_BRUSH));
+
         for (int i = 0; i < FigureVector.size(); i++) {
             if (FigureVector[i]->type == ftRectangle)
-                Rectangle(hdc, FigureVector[i]->coords.left, FigureVector[i]->coords.top, FigureVector[i]->coords.right, FigureVector[i]->coords.bottom);
+                Rectangle(memDC, FigureVector[i]->coords.left, FigureVector[i]->coords.top, FigureVector[i]->coords.right, FigureVector[i]->coords.bottom);
             else if (FigureVector[i]->type == ftEllipse)
-                Ellipse(hdc, FigureVector[i]->coords.left, FigureVector[i]->coords.top, FigureVector[i]->coords.right, FigureVector[i]->coords.bottom);
+                Ellipse(memDC, FigureVector[i]->coords.left, FigureVector[i]->coords.top, FigureVector[i]->coords.right, FigureVector[i]->coords.bottom);
         }
         if (StartedDrawing) {
             if (CurrentFigureType == ftRectangle)
-                Rectangle(hdc, globalRectangle.left, globalRectangle.top, globalRectangle.right, globalRectangle.bottom);
+                Rectangle(memDC, globalRectangle.left, globalRectangle.top, globalRectangle.right, globalRectangle.bottom);
             else if (CurrentFigureType == ftEllipse)
-                Ellipse(hdc, globalRectangle.left, globalRectangle.top, globalRectangle.right, globalRectangle.bottom);
+                Ellipse(memDC, globalRectangle.left, globalRectangle.top, globalRectangle.right, globalRectangle.bottom);
         }
+
+        BitBlt(hdc, 0, 0, lpRect.right, lpRect.bottom, memDC, 0, 0, SRCCOPY);
+        SelectObject(memDC, hOld);
+        DeleteObject(hBM);
+        DeleteDC(memDC);
 
         EndPaint(hWnd, &ps);
     }
