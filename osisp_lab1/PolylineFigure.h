@@ -50,7 +50,7 @@ public:
 	}
 
 	// adds a node in polyline (not a finish one, only central)
-	void RClickDown(int x1, int y1) override {
+	void RClickDown(int x1, int y1) {
 		if (isDrawing) {
 			CurrentLine->right = x1;
 			CurrentLine->bottom = y1;

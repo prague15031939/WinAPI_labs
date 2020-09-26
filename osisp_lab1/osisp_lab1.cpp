@@ -119,7 +119,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         break;
     case WM_KEYDOWN:
     {
+        InputText(hWnd, message, wParam, lParam);
         SwitchFigureType(hWnd, message, wParam, lParam);
+        InvalidateRect(hWnd, NULL, true);
     }
     break;
     case WM_LBUTTONDOWN:
@@ -197,6 +199,8 @@ void CreateInstance() {
     case ftEllipse: CurrentFigure = new EllipseFigure(); break;
     case ftLine: CurrentFigure = new LineFigure(); break;
     case ftPolyline: CurrentFigure = new PolylineFigure(); break;
+    case ftText: CurrentFigure = new TextFigure(); break;
+    case ftPolygon: CurrentFigure = new PolygonFigure(); break;
     }
     CurrentFigure->type = CurrentFigureType;
 }
@@ -217,7 +221,19 @@ void SwitchFigureType(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
         case 0x50:
             CurrentFigureType = ftPolyline;
             break;
+        case 0x54:
+            CurrentFigureType = ftText;
+            break;
+        case 0x47:
+            CurrentFigureType = ftPolygon;
+            break;
         }
+    }
+}
+
+void InputText(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam) {
+    if (StartedDrawing && CurrentFigureType == ftText) {
+        dynamic_cast<TextFigure*>(CurrentFigure)->ModifyText(wParam);
     }
 }
 
@@ -226,8 +242,9 @@ void onRClickDown(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
     int xPos = GET_X_LPARAM(lParam);
     int yPos = GET_Y_LPARAM(lParam);
 
-    if (CurrentFigure->type == ftPolyline) {
-        dynamic_cast<PolylineFigure*>(CurrentFigure)->RClickDown(xPos, yPos);
+    switch (CurrentFigure->type) {
+    case ftPolyline: dynamic_cast<PolylineFigure*>(CurrentFigure)->RClickDown(xPos, yPos); break;
+    case ftText: { dynamic_cast<TextFigure*>(CurrentFigure)->FinishText(FigureVector); StartedDrawing = false; } break;
     }
 }
 
@@ -242,6 +259,8 @@ void onClickDown(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
     case ftEllipse: dynamic_cast<EllipseFigure*>(CurrentFigure)->ClickDown(xPos, yPos, xPos, yPos); break;
     case ftLine: dynamic_cast<LineFigure*>(CurrentFigure)->ClickDown(xPos, yPos, xPos, yPos); break;
     case ftPolyline: dynamic_cast<PolylineFigure*>(CurrentFigure)->ClickDown(xPos, yPos, xPos, yPos); break;
+    case ftText: dynamic_cast<TextFigure*>(CurrentFigure)->ClickDown(xPos, yPos, xPos, yPos); break;
+    case ftPolygon: dynamic_cast<PolygonFigure*>(CurrentFigure)->ClickDown(xPos, yPos, xPos, yPos); break;
     }
 
     StartedDrawing = true;
@@ -258,6 +277,7 @@ void onMouseMove(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
         case ftEllipse: dynamic_cast<EllipseFigure*>(CurrentFigure)->MouseMove(xPos, yPos); break;
         case ftLine: dynamic_cast<LineFigure*>(CurrentFigure)->MouseMove(xPos, yPos); break;
         case ftPolyline: dynamic_cast<PolylineFigure*>(CurrentFigure)->MouseMove(xPos, yPos); break;
+        case ftPolygon: dynamic_cast<PolygonFigure*>(CurrentFigure)->MouseMove(xPos, yPos); break;
         }
     }
 }
@@ -272,9 +292,11 @@ void onClickUp(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
     case ftEllipse: dynamic_cast<EllipseFigure*>(CurrentFigure)->ClickUp(xPos, yPos, FigureVector); break;
     case ftLine: dynamic_cast<LineFigure*>(CurrentFigure)->ClickUp(xPos, yPos, FigureVector); break;
     case ftPolyline: dynamic_cast<PolylineFigure*>(CurrentFigure)->ClickUp(xPos, yPos, FigureVector); break;
+    case ftPolygon: dynamic_cast<PolygonFigure*>(CurrentFigure)->ClickUp(xPos, yPos, FigureVector); break;
     }
 
-    StartedDrawing = false;
+    if (CurrentFigure->type != ftText)
+        StartedDrawing = false;
 }
 
 void onPaint(HDC hdc, Figure* figure) {
@@ -283,6 +305,8 @@ void onPaint(HDC hdc, Figure* figure) {
     case ftEllipse: dynamic_cast<EllipseFigure*>(figure)->Paint(hdc); break;
     case ftLine: dynamic_cast<LineFigure*>(figure)->Paint(hdc); break;
     case ftPolyline: dynamic_cast<PolylineFigure*>(figure)->Paint(hdc); break;
+    case ftText: dynamic_cast<TextFigure*>(figure)->Paint(hdc); break;
+    case ftPolygon: dynamic_cast<PolygonFigure*>(figure)->Paint(hdc); break;
     }
 }
 

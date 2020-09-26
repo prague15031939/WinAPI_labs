@@ -144,10 +144,12 @@
     <ClInclude Include="framework.h" />
     <ClInclude Include="LineFigure.h" />
     <ClInclude Include="osisp_lab1.h" />
+    <ClInclude Include="Polygon.h" />
     <ClInclude Include="PolylineFigure.h" />
     <ClInclude Include="RectangleFigure.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="targetver.h" />
+    <ClInclude Include="TextFigure.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="osisp_lab1.cpp" />
