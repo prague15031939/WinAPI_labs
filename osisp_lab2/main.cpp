@@ -1,20 +1,20 @@
 ﻿#include <iostream>
-#include <ctime>
 #include "thread_pool.h"
 
 DWORD WINAPI ThreadProc(LPVOID lpParam) {
-    std::cout << time(NULL) << "\n";
+    Sleep(2000);
+    std::cout << GetCurrentThreadId() << "\n";
     return 0;
 }
 
 int main()
 {
-    int counter = 0;
     ThreadPool* pool = new ThreadPool(5);
     for (int i = 0; i < 8; i++) {
         if (!pool->exec(ThreadProc))
-            counter++;
+            std::cout << "no threads\n";
     }
-    Sleep(1000);
-    std::cout << counter << std::endl;
+
+    char c;
+    std::cin >> c;
 }
