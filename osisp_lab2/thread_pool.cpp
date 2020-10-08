@@ -30,11 +30,11 @@ DWORD ThreadPool::ThreadMain() {
 			return 0;
 		}
 
-		Task* currentTask = tasks.front();
-		tasks.pop_back();
+		Task* currentTask = tasks.top();
+		tasks.pop();
 		LeaveCriticalSection(&criticalSection);
 
-		currentTask->ThreadProc(NULL);
+		currentTask->ThreadProc(currentTask->lpParam);
 	} while (canAccept);
 
 	return 0;
@@ -46,6 +46,7 @@ ThreadPool::~ThreadPool() {
 	WakeAllConditionVariable(&conditionVariable);
 	WaitForMultipleObjects(threadAmount, threads, TRUE, INFINITE);
 	DeleteCriticalSection(&criticalSection);
+
 	for (int i = 0; i < this->threadAmount; i++) {
 		CloseHandle(threads[i]);
 	}
