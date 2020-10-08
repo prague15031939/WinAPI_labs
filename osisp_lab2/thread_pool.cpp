@@ -30,11 +30,11 @@ DWORD ThreadPool::ThreadMain() {
 			return 0;
 		}
 
-		Task* current_task = tasks.front();
+		Task* currentTask = tasks.front();
 		tasks.pop_back();
 		LeaveCriticalSection(&criticalSection);
 
-		current_task->ThreadProc(NULL);
+		currentTask->ThreadProc(NULL);
 	} while (canAccept);
 
 	return 0;

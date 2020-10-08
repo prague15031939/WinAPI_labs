@@ -19,7 +19,7 @@ public:
 	~ThreadPool();
 
 	BOOL exec(LPTHREAD_START_ROUTINE ThreadProc) {
-		if (tasks.size() == threadMaxCount)
+		if (threadAmount == threadMaxCount)
 			isFull = true;
 
 		if (!isFull) {

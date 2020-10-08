@@ -2,7 +2,6 @@
 #include "thread_pool.h"
 
 DWORD WINAPI ThreadProc(LPVOID lpParam) {
-    Sleep(2000);
     std::cout << GetCurrentThreadId() << "\n";
     return 0;
 }
