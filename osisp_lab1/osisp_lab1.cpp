@@ -263,14 +263,7 @@ void onClickDown(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
     int yPos = GET_Y_LPARAM(lParam);
 
     CreateInstance();
-    switch (CurrentFigure->type) {
-    case ftRectangle: dynamic_cast<RectangleFigure*>(CurrentFigure)->ClickDown(xPos, yPos, xPos, yPos); break;
-    case ftEllipse: dynamic_cast<EllipseFigure*>(CurrentFigure)->ClickDown(xPos, yPos, xPos, yPos); break;
-    case ftLine: dynamic_cast<LineFigure*>(CurrentFigure)->ClickDown(xPos, yPos, xPos, yPos); break;
-    case ftPolyline: dynamic_cast<PolylineFigure*>(CurrentFigure)->ClickDown(xPos, yPos, xPos, yPos); break;
-    case ftText: dynamic_cast<TextFigure*>(CurrentFigure)->ClickDown(xPos, yPos, xPos, yPos); break;
-    case ftPolygon: dynamic_cast<PolygonFigure*>(CurrentFigure)->ClickDown(xPos, yPos, xPos, yPos); break;
-    }
+    CurrentFigure->ClickDown(xPos, yPos, xPos, yPos);
 
     StartedDrawing = true;
 }
@@ -281,13 +274,8 @@ void onMouseMove(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
         int xPos = GET_X_LPARAM(lParam);
         int yPos = GET_Y_LPARAM(lParam);
 
-        switch (CurrentFigure->type) {
-        case ftRectangle: dynamic_cast<RectangleFigure*>(CurrentFigure)->MouseMove(xPos, yPos); break;
-        case ftEllipse: dynamic_cast<EllipseFigure*>(CurrentFigure)->MouseMove(xPos, yPos); break;
-        case ftLine: dynamic_cast<LineFigure*>(CurrentFigure)->MouseMove(xPos, yPos); break;
-        case ftPolyline: dynamic_cast<PolylineFigure*>(CurrentFigure)->MouseMove(xPos, yPos); break;
-        case ftPolygon: dynamic_cast<PolygonFigure*>(CurrentFigure)->MouseMove(xPos, yPos); break;
-        }
+        if (CurrentFigureType != ftText)
+            CurrentFigure->MouseMove(xPos, yPos);
     }
 }
 
@@ -296,27 +284,14 @@ void onClickUp(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
     int xPos = GET_X_LPARAM(lParam);
     int yPos = GET_Y_LPARAM(lParam);
 
-    switch (CurrentFigure->type) {
-    case ftRectangle: dynamic_cast<RectangleFigure*>(CurrentFigure)->ClickUp(xPos, yPos, FigureVector); break;
-    case ftEllipse: dynamic_cast<EllipseFigure*>(CurrentFigure)->ClickUp(xPos, yPos, FigureVector); break;
-    case ftLine: dynamic_cast<LineFigure*>(CurrentFigure)->ClickUp(xPos, yPos, FigureVector); break;
-    case ftPolyline: dynamic_cast<PolylineFigure*>(CurrentFigure)->ClickUp(xPos, yPos, FigureVector); break;
-    case ftPolygon: dynamic_cast<PolygonFigure*>(CurrentFigure)->ClickUp(xPos, yPos, FigureVector); break;
-    }
-
-    if (CurrentFigure->type != ftText)
+    if (CurrentFigure->type != ftText) {
+        CurrentFigure->ClickUp(xPos, yPos, FigureVector);
         StartedDrawing = false;
+    }
 }
 
 void onPaint(HDC hdc, Figure* figure) {
-    switch (figure->type) {
-    case ftRectangle: dynamic_cast<RectangleFigure*>(figure)->Paint(hdc); break;
-    case ftEllipse: dynamic_cast<EllipseFigure*>(figure)->Paint(hdc); break;
-    case ftLine: dynamic_cast<LineFigure*>(figure)->Paint(hdc); break;
-    case ftPolyline: dynamic_cast<PolylineFigure*>(figure)->Paint(hdc); break;
-    case ftText: dynamic_cast<TextFigure*>(figure)->Paint(hdc); break;
-    case ftPolygon: dynamic_cast<PolygonFigure*>(figure)->Paint(hdc); break;
-    }
+    figure->Paint(hdc);
 }
 
 INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
