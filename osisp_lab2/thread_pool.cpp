@@ -1,6 +1,8 @@
 #include "thread_pool.h"
 
 ThreadPool::ThreadPool(int maxCount) {
+	
+	logger = new ThreadPoolLogger("D:\\log.txt");
 
 	this->threadMaxCount = maxCount;
 	threads = new HANDLE[maxCount];
@@ -11,6 +13,8 @@ ThreadPool::ThreadPool(int maxCount) {
 
 	for (int i = 0; i < maxCount; i++)
 		threads[i] = CreateThread(NULL, 0, ThreadStart, (void*)this, 0, NULL);
+
+	logger->createPool(maxCount);
 }
 
 DWORD WINAPI ThreadPool::ThreadStart(LPVOID lpParam) {
@@ -27,6 +31,7 @@ DWORD ThreadPool::ThreadMain() {
 
 		if (!canAccept) {
 			LeaveCriticalSection(&criticalSection);
+			logger->destroyThread(GetCurrentThreadId());
 			return 0;
 		}
 
@@ -34,10 +39,34 @@ DWORD ThreadPool::ThreadMain() {
 		tasks.pop();
 		LeaveCriticalSection(&criticalSection);
 
+		logger->useThread(GetCurrentThreadId());
 		currentTask->ThreadProc(currentTask->lpParam);
+		logger->freeThread(GetCurrentThreadId());
+
 	} while (canAccept);
 
+	logger->destroyThread(GetCurrentThreadId());
 	return 0;
+}
+
+BOOL ThreadPool::exec(LPTHREAD_START_ROUTINE ThreadProc, LPVOID lpParam) {
+	if (threadAmount == threadMaxCount)
+		isFull = true;
+
+	if (!isFull) {
+		EnterCriticalSection(&criticalSection);
+		tasks.push(new Task(ThreadProc, lpParam));
+		threadAmount++;
+		logger->addTask(threadAmount);
+		LeaveCriticalSection(&criticalSection);
+
+		WakeConditionVariable(&conditionVariable);
+		return true;
+	}
+	else {
+		logger->overflowed();
+		return false;
+	}
 }
 
 ThreadPool::~ThreadPool() {
@@ -51,4 +80,5 @@ ThreadPool::~ThreadPool() {
 		CloseHandle(threads[i]);
 	}
 
+	logger->destroyPool();
 }

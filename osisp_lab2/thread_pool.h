@@ -1,6 +1,7 @@
 #pragma once
 #include <windows.h>
 #include <stack>
+#include "logger.h"
 
 class Task {
 public:
@@ -13,29 +14,14 @@ public:
 	LPVOID lpParam;
 };
 
+
 class ThreadPool {
 
 public:
 
 	ThreadPool(int maxCount);
 	~ThreadPool();
-
-	BOOL exec(LPTHREAD_START_ROUTINE ThreadProc, LPVOID lpParam = NULL) {
-		if (threadAmount == threadMaxCount)
-			isFull = true;
-
-		if (!isFull) {
-			EnterCriticalSection(&criticalSection);
-			tasks.push(new Task(ThreadProc, lpParam));
-			threadAmount++;
-			LeaveCriticalSection(&criticalSection);
-
-			WakeConditionVariable(&conditionVariable);
-			return true;
-		}
-
-		return false;
-	}
+	BOOL exec(LPTHREAD_START_ROUTINE ThreadProc, LPVOID lpParam = NULL);
 
 private:
 	static DWORD WINAPI ThreadStart(LPVOID lpParam);
@@ -50,4 +36,7 @@ private:
 	int threadAmount;
 	std::stack<Task*> tasks;
 	HANDLE* threads;
+
+	ThreadPoolLogger *logger;
 };
+
