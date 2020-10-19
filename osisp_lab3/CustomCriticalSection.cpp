@@ -30,8 +30,10 @@ BOOL InitializeCustomCriticalSectionAndSpinCount(CUSTOM_CIRTICAL_SECTION* lpCrit
 }
 
 void EnterCustomCriticalSection(CUSTOM_CIRTICAL_SECTION* lpCriticalSection) {
-	if (!LockSpinlock(lpCriticalSection))
-		OpenMutex(SYNCHRONIZE, FALSE, MUTEX_NAME);
+	//if (!LockSpinlock(lpCriticalSection))
+		LockSpinlock(lpCriticalSection);
+		WaitForSingleObject(lpCriticalSection->LockSemaphore, INFINITE);
+		//OpenMutex(SYNCHRONIZE, FALSE, MUTEX_NAME);
 	lpCriticalSection->OwningThread = GetCurrentThread();
 }
 
