@@ -34,7 +34,7 @@ DWORD WINAPI ThreadProc3(LPVOID lpParam) {
 
 int main()
 {
-    ThreadPool* pool = new ThreadPool(15);
+    ThreadPool* pool = new ThreadPool(7);
 
     const char* itemList[6] = { "first", "second", "third", "item", "item", "item" };
 
