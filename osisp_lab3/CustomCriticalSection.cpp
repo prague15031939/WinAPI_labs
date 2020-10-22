@@ -1,4 +1,8 @@
 #include "CustomCriticalSection.h"
+#include <iostream>
+#include <sstream>
+
+using namespace std;
 
 BOOL LockSpinlock(CUSTOM_CIRTICAL_SECTION* lpCriticalSection) {
 	DWORD i = 0;
@@ -6,22 +10,32 @@ BOOL LockSpinlock(CUSTOM_CIRTICAL_SECTION* lpCriticalSection) {
 	while (i < lpCriticalSection->SpinCount) {
 		if (!lpCriticalSection->slock) {
 			eax = InterlockedExchange(&lpCriticalSection->slock, eax);
-			if (eax == 0)
+			if (eax == 0) {
 				return TRUE;
+			}
 		}
 		i++;
 	}
+	stringstream ss;
+	ss.clear();
+	ss << GetCurrentThreadId() << " sucked on spinlock\n";
+	cout << ss.str();
 	return FALSE;
 }
 
 void UnlockSpinlock(CUSTOM_CIRTICAL_SECTION* lpCriticalSection) {
 	int eax = 0;
 	InterlockedExchange(&lpCriticalSection->slock, eax);
+	stringstream ss;
+	ss.clear();
+	ss << GetCurrentThreadId() << " unlocked spinlock\n";
+	cout << ss.str();
 }
 
 BOOL InitializeCustomCriticalSectionAndSpinCount(CUSTOM_CIRTICAL_SECTION* lpCriticalSection, DWORD dwSpinCount) {
 	if (!lpCriticalSection->isInitialized) {
 		lpCriticalSection->slock = 0;
+		lpCriticalSection->OwningThread = 0;
 		lpCriticalSection->SpinCount = dwSpinCount;
 		lpCriticalSection->LockSemaphore = CreateMutex(NULL, false, MUTEX_NAME);
 		return TRUE;
@@ -30,14 +44,22 @@ BOOL InitializeCustomCriticalSectionAndSpinCount(CUSTOM_CIRTICAL_SECTION* lpCrit
 }
 
 void EnterCustomCriticalSection(CUSTOM_CIRTICAL_SECTION* lpCriticalSection) {
-	//if (!LockSpinlock(lpCriticalSection))
-		LockSpinlock(lpCriticalSection);
-		WaitForSingleObject(lpCriticalSection->LockSemaphore, INFINITE);
-		//OpenMutex(SYNCHRONIZE, FALSE, MUTEX_NAME);
+	bool isLocked = LockSpinlock(lpCriticalSection);
+	WaitForSingleObject(lpCriticalSection->LockSemaphore, INFINITE);
+
+	stringstream ss;
+	ss.clear();
+	if (isLocked)
+		ss << GetCurrentThreadId() << " locked spinlock\n";
+	else
+		ss << GetCurrentThreadId() << " locked mutex\n";
+	cout << ss.str();
+
 	lpCriticalSection->OwningThread = GetCurrentThread();
 }
 
 void LeaveCustomCriticalSection(CUSTOM_CIRTICAL_SECTION* lpCriticalSection) {
-	if (ReleaseMutex(lpCriticalSection->LockSemaphore) == 0)
-		UnlockSpinlock(lpCriticalSection);
+	ReleaseMutex(lpCriticalSection->LockSemaphore);
+	UnlockSpinlock(lpCriticalSection);
+	lpCriticalSection->OwningThread = 0;
 }
