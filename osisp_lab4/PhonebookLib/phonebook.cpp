@@ -3,7 +3,7 @@
 #include "index.h"
 
 static std::vector<PhonebookRecord*> phoneBook;
-LPWSTR currentDirectory;
+TCHAR currentDirectory[1024];
 
 Index<wchar_t[20]> *telephoneIndex, *lastNameIndex, *firstNameIndex, *middleNameIndex, *streetIndex;
 Index<wchar_t[10]> *houseIndex, *flatIndex;
@@ -22,7 +22,7 @@ BOOL APIENTRY DllMain( HMODULE hModule,
     {
     case DLL_PROCESS_ATTACH:
         GetCurrentDirectory(sizeof(currentDirectory), currentDirectory);
-        phoneBook = ReadFromFile(L"D:\\Works C++\\5 сем\\WinAPI_labs\\osisp_lab4\\Debug\\phonebook.db");
+        phoneBook = ReadFromFile((std::wstring)currentDirectory + L"\\phonebook.db");
         CreateIndex(phoneBook);
         break;
     case DLL_THREAD_ATTACH:
