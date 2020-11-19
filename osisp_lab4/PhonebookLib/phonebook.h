@@ -2,6 +2,8 @@
 
 #include <vector>
 #include <string>
+#include <algorithm>
+#include <fstream>
 
 #ifdef PHONEBOOKCORE_EXPORTS
 #define PHONEBOOKCORE_API __declspec(dllexport)
@@ -16,8 +18,8 @@ struct PhonebookRecord
 	wchar_t firstName[20];
 	wchar_t middleName[20];
 	wchar_t street[20];
-	unsigned int house;
-	unsigned int flat;
+	wchar_t house[10];
+	wchar_t flat[10];
 };
 
 PHONEBOOKCORE_API std::vector<PhonebookRecord*> __cdecl GetPhonebook();

@@ -152,7 +152,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="framework.h" />
-    <ClInclude Include="Index.h" />
+    <ClInclude Include="index.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="phonebook.h" />
   </ItemGroup>
