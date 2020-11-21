@@ -11,9 +11,16 @@ HWND hWnd;
 HFONT hFont;
 HWND hListView;
 HWND hBtnSearch;
+HWND hBtnPrev;
+HWND hBtnNext;
+HWND hBtnRefresh;
 HWND hLnEdit, hFnEdit, hMnEdit, hTelEdit, hStrEdit, hHEdit, hFEdit;
 
 std::vector<PhonebookRecord*> phonebook;
+appState state;
+
+std::wstring GetText(HWND hEdit);
+PhonebookRecord MakeSearchParam();
 
 HINSTANCE hInst;                               
 WCHAR szTitle[MAX_LOADSTRING];                  
@@ -101,7 +108,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     {
     case WM_CREATE:
     {
+        state = none;
         hListView = CreateListView(hWnd, 7);
+        hBtnPrev = CreateWindow(WC_BUTTON, TEXT("Previous"), WS_CHILD | WS_OVERLAPPED | WS_EX_CLIENTEDGE | WS_VISIBLE | WS_BORDER | BS_CENTER,
+            25, 470, 200, 23, hWnd, IDC_PREVBTN, hInst, NULL);
         hBtnSearch = CreateWindow(WC_BUTTON, TEXT("Search"), WS_CHILD | WS_OVERLAPPED | WS_EX_CLIENTEDGE | WS_VISIBLE | WS_BORDER | BS_CENTER,
             925, 495, 200, 23, hWnd, IDC_SEARCHBTN, hInst, NULL);
         HWND hLabel1 = CreateWindow(L"static", L"last_name", WS_CHILD | WS_VISIBLE | WS_TABSTOP, 250, 470, 80, 20, hWnd, (HMENU)(501), (HINSTANCE)GetWindowLong(hWnd, GWL_HINSTANCE), NULL);
@@ -113,9 +123,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         HWND hLabel3 = CreateWindow(L"static", L"street", WS_CHILD | WS_VISIBLE | WS_TABSTOP, 700, 470, 50, 20, hWnd, (HMENU)(501), (HINSTANCE)GetWindowLong(hWnd, GWL_HINSTANCE), NULL);
         hStrEdit = CreateWindow(WC_EDIT, TEXT(""), WS_CHILD | WS_OVERLAPPED | WS_EX_CLIENTEDGE | WS_VISIBLE | WS_BORDER | ES_LEFT | ES_AUTOHSCROLL,
             700, 495, 200, 23, hWnd, IDC_STREDIT, hInst, NULL);
-        hBtnSearch = CreateWindow(WC_BUTTON, TEXT("Refresh"), WS_CHILD | WS_OVERLAPPED | WS_EX_CLIENTEDGE | WS_VISIBLE | WS_BORDER | BS_CENTER,
+        hBtnRefresh = CreateWindow(WC_BUTTON, TEXT("View"), WS_CHILD | WS_OVERLAPPED | WS_EX_CLIENTEDGE | WS_VISIBLE | WS_BORDER | BS_CENTER,
             25, 495, 200, 23, hWnd, IDC_REFRESHBTN, hInst, NULL);
 
+        hBtnNext = CreateWindow(WC_BUTTON, TEXT("Next"), WS_CHILD | WS_OVERLAPPED | WS_EX_CLIENTEDGE | WS_VISIBLE | WS_BORDER | BS_CENTER,
+            925, 470, 200, 23, hWnd, IDC_NEXTBTN, hInst, NULL);
         HWND hLabel4 = CreateWindow(L"static", L"first_name", WS_CHILD | WS_VISIBLE | WS_TABSTOP, 25, 540, 80, 20, hWnd, (HMENU)(501), (HINSTANCE)GetWindowLong(hWnd, GWL_HINSTANCE), NULL);
         hFnEdit = CreateWindow(WC_EDIT, TEXT(""), WS_CHILD | WS_OVERLAPPED | WS_EX_CLIENTEDGE | WS_VISIBLE | WS_BORDER | ES_LEFT | ES_AUTOHSCROLL,
             25, 565, 200, 23, hWnd, IDC_FNEDIT, hInst, NULL);
@@ -138,35 +150,49 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             switch (LOWORD(wParam)) {
             case (int)IDC_REFRESHBTN:
             {
+                state = view;
                 UpdateListView(hListView, GetPhonebook());
                 break;
             }
             case (int)IDC_SEARCHBTN:
-                PhonebookRecord searchParam;
-                ZeroMemory(&searchParam, sizeof(searchParam));
-                std::wstring text = GetText(hFnEdit);
-                std::copy(std::begin(text), std::end(text), std::begin(searchParam.firstName));
-
-                text = GetText(hLnEdit);
-                std::copy(std::begin(text), std::end(text), std::begin(searchParam.lastName));
-
-                text = GetText(hMnEdit);
-                std::copy(std::begin(text), std::end(text), std::begin(searchParam.middleName));
-
-                text = GetText(hTelEdit);
-                std::copy(std::begin(text), std::end(text), std::begin(searchParam.telephone));
-
-                text = GetText(hStrEdit);
-                std::copy(std::begin(text), std::end(text), std::begin(searchParam.street));
-
-                text = GetText(hHEdit);
-                std::copy(std::begin(text), std::end(text), std::begin(searchParam.house));
-
-                text = GetText(hFEdit);
-                std::copy(std::begin(text), std::end(text), std::begin(searchParam.flat));
-
+            {
+                state = search;
+                PhonebookRecord searchParam = MakeSearchParam();
                 UpdateListView(hListView, Search(searchParam));
                 break;
+            }
+            case (int)IDC_NEXTBTN:
+            {
+                if (state == search) {
+                    PhonebookRecord searchParam = MakeSearchParam();
+                    auto result = SearchNext(searchParam);
+                    if (result.size() != 0)
+                        UpdateListView(hListView, result);
+                }
+                else if (state == view) {
+                    auto result = GetNext();
+                    if (result.size() != 0)
+                        UpdateListView(hListView, result);
+                }
+                break;
+            }
+            case (int)IDC_PREVBTN:
+            {
+                if (state == search) {
+                    PhonebookRecord searchParam = MakeSearchParam();
+                    ReturnToPrevious();
+                    auto result = SearchNext(searchParam);
+                    if (result.size() != 0)
+                        UpdateListView(hListView, result);
+                }
+                else if (state == view) {
+                    ReturnToPrevious();
+                    auto result = GetNext();
+                    if (result.size() != 0)
+                        UpdateListView(hListView, result);
+                }
+                break;
+            }
             }
             break;
         }
@@ -286,4 +312,31 @@ std::wstring GetText(HWND hEdit)
     WCHAR buffer[512];
     GetWindowText(hEdit, buffer, sizeof(buffer));
     return buffer;
+}
+
+PhonebookRecord MakeSearchParam() {
+    PhonebookRecord searchParam;
+    ZeroMemory(&searchParam, sizeof(searchParam));
+    std::wstring text = GetText(hFnEdit);
+    std::copy(std::begin(text), std::end(text), std::begin(searchParam.firstName));
+
+    text = GetText(hLnEdit);
+    std::copy(std::begin(text), std::end(text), std::begin(searchParam.lastName));
+
+    text = GetText(hMnEdit);
+    std::copy(std::begin(text), std::end(text), std::begin(searchParam.middleName));
+
+    text = GetText(hTelEdit);
+    std::copy(std::begin(text), std::end(text), std::begin(searchParam.telephone));
+
+    text = GetText(hStrEdit);
+    std::copy(std::begin(text), std::end(text), std::begin(searchParam.street));
+
+    text = GetText(hHEdit);
+    std::copy(std::begin(text), std::end(text), std::begin(searchParam.house));
+
+    text = GetText(hFEdit);
+    std::copy(std::begin(text), std::end(text), std::begin(searchParam.flat));
+
+    return searchParam;
 }

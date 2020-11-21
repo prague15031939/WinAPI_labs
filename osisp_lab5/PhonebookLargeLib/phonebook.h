@@ -25,3 +25,9 @@ struct PhonebookRecord
 PHONEBOOKCORE_API std::vector<PhonebookRecord*> __cdecl GetPhonebook();
 
 PHONEBOOKCORE_API std::vector<PhonebookRecord*> __cdecl Search(PhonebookRecord searchParam);
+
+PHONEBOOKCORE_API std::vector<PhonebookRecord*> __cdecl GetNext();
+
+PHONEBOOKCORE_API std::vector<PhonebookRecord*> __cdecl SearchNext(PhonebookRecord searchParam);
+
+PHONEBOOKCORE_API void _cdecl ReturnToPrevious();

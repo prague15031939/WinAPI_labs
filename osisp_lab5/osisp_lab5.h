@@ -15,6 +15,8 @@
 #define IDC_HEDIT (HMENU)109
 #define IDC_FEDIT (HMENU)110
 #define IDC_REFRESHBTN (HMENU)111
+#define IDC_PREVBTN (HMENU)112
+#define IDC_NEXTBTN (HMENU)113
 
 const wchar_t* headers[] = {
         { L"telephone" },
@@ -26,10 +28,13 @@ const wchar_t* headers[] = {
         { L"flat" }
 };
 
+enum appState {
+    view, search, none
+};
+
 ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 
 HWND CreateListView(HWND parent, int columns);
 void UpdateListView(HWND hListView, std::vector<PhonebookRecord*> book);
-std::wstring GetText(HWND hEdit);

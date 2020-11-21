@@ -1,17 +1,20 @@
 ﻿#include "pch.h"
 #include "phonebook.h"
 
-static std::vector<PhonebookRecord*> phoneBook;
+#include <stack>
+
 TCHAR currentDirectory[1024];
 
 HANDLE hSrcFile;
 DWORD dwFileSize;
 HANDLE hMapObject;
 LPVOID lpvFilePointer;
+DWORD offset;
+
+std::vector<DWORD> cachedOffsets;
 
 SYSTEM_INFO sysinfo;
 
-std::vector<PhonebookRecord*> ReadFromFile(std::wstring filePath);
 LPVOID SetFilePointer(HANDLE hMap, LPVOID prevFilePointer, DWORD offset);
 std::wstring ReadLine(DWORD* offset);
 wchar_t ReadSymbol(DWORD* offset);
@@ -32,6 +35,7 @@ BOOL APIENTRY DllMain( HMODULE hModule,
         dwFileSize = GetFileSize(hSrcFile, NULL);
         hMapObject = CreateFileMapping(hSrcFile, NULL, PAGE_READONLY, 0, 0, L"PhonebookLarge");
         lpvFilePointer = SetFilePointer(hMapObject, NULL, 0);
+        offset = 0;
         break;
     case DLL_THREAD_ATTACH:
         break;
@@ -43,17 +47,63 @@ BOOL APIENTRY DllMain( HMODULE hModule,
     return TRUE;
 }
 
-std::vector<PhonebookRecord*> __cdecl GetPhonebook()
-{
-    return phoneBook;
+void _cdecl ReturnToPrevious() {
+    if (cachedOffsets.size() == 0)
+        offset = 0;
+    else if (cachedOffsets.size() == 1) {
+        cachedOffsets.pop_back();
+        offset = 0;
+    }
+    else {
+        cachedOffsets.pop_back();
+        offset = cachedOffsets.back();
+        cachedOffsets.pop_back();
+    }
 }
 
-std::vector<PhonebookRecord*> __cdecl Search(PhonebookRecord searchParam)
+std::vector<PhonebookRecord*> __cdecl GetPhonebook()
+{
+    offset = 0;
+    cachedOffsets.clear();
+    return GetNext();
+}
+
+std::vector<PhonebookRecord*> __cdecl GetNext() 
 {
     std::vector<PhonebookRecord*> result;
-
-    DWORD offset = 0;
     std::wstring line;
+
+    if (offset < dwFileSize)
+        cachedOffsets.push_back(offset);
+
+    for (int i = 0; i < 20; i++) {
+        if (offset < dwFileSize) {
+            line.clear();
+            line = ReadLine(&offset);
+            PhonebookRecord* temp = ParseLine(line);
+            result.push_back(temp);
+        }
+        else
+            break;
+    }
+
+    return result;
+}
+
+std::vector<PhonebookRecord*> __cdecl Search(PhonebookRecord searchParam) 
+{
+    offset = 0;
+    cachedOffsets.clear();
+    return SearchNext(searchParam);
+}
+
+std::vector<PhonebookRecord*> __cdecl SearchNext(PhonebookRecord searchParam)
+{
+    std::vector<PhonebookRecord*> result;
+    std::wstring line;
+
+    if (offset < dwFileSize)
+        cachedOffsets.push_back(offset);
 
     while (offset < dwFileSize) {
         line.clear();
@@ -69,37 +119,21 @@ std::vector<PhonebookRecord*> __cdecl Search(PhonebookRecord searchParam)
             !((std::wstring)searchParam.flat).empty() && (std::wstring)temp->flat != (std::wstring)searchParam.flat) continue;
 
         result.push_back(temp);
+        if (result.size() == 20) break;
     }
 
-    return result;
-}
-
-std::vector<PhonebookRecord*> ReadFromFile(std::wstring filePath)
-{
-    std::vector<PhonebookRecord*> result;
-    std::wstring line;
-    std::wifstream file(filePath);
-    if (file.is_open()) {
-        while (getline(file, line)) {
-            result.push_back(ParseLine(line));
-        }
-    }
-
-    file.close();
     return result;
 }
 
 LPVOID SetFilePointer(HANDLE hMap, LPVOID prevFilePointer, DWORD offset)
 {
     LPVOID result;
-    if (prevFilePointer != NULL) {
+    if (prevFilePointer != NULL)
         UnmapViewOfFile(prevFilePointer);
-    }
 
     result = MapViewOfFile(hMap, FILE_MAP_READ, 0, offset, sysinfo.dwAllocationGranularity);
-    if (result == NULL) {
+    if (result == NULL) 
         result = MapViewOfFile(hMap, FILE_MAP_READ, 0, offset, 0);
-    }
     return result;
 }
 
