@@ -59,6 +59,7 @@ void _cdecl ReturnToPrevious() {
         offset = cachedOffsets.back();
         cachedOffsets.pop_back();
     }
+    lpvFilePointer = SetFilePointer(hMapObject, lpvFilePointer, offset);
 }
 
 std::vector<PhonebookRecord*> __cdecl GetPhonebook()
