@@ -6,6 +6,7 @@
 HANDLE hStdOut;
 
 VOID DisplayMessage(std::wstring message);
+std::wstring GetKeyPath(HKEY key);
 
 HANDLE(WINAPI* PCreateFile) (LPCWSTR lpFileName, DWORD dwDesiredAccess, DWORD dwShareMode, LPSECURITY_ATTRIBUTES lpSecurityAttributes, DWORD dwCreationDisposition, DWORD dwFlagsAndAttributes, HANDLE hTemplateFile) = CreateFile;
 
@@ -42,6 +43,56 @@ BOOL WINAPI HookReadFile(HANDLE hFile, LPVOID lpBuffer, DWORD nNumberOfBytesToRe
     return PReadFile(hFile, lpBuffer, nNumberOfBytesToRead, lpNumberOfBytesRead, lpOverlapped);
 }
 
+//-----------------------------------------------------------------------------------------------------------------------------------------------------
+
+LSTATUS(WINAPI* PRegCreateKey) (HKEY hKey, LPCWSTR lpSubKey, PHKEY phkResult) = RegCreateKey;
+
+LSTATUS WINAPI HookRegCreateKey(HKEY hKey, LPCWSTR lpSubKey, PHKEY phkResult)
+{
+    DisplayMessage(L"Create key " + (std::wstring)lpSubKey + L"\n");
+    return PRegCreateKey(hKey, lpSubKey, phkResult);
+}
+
+LSTATUS(WINAPI* PRegOpenKey) (HKEY hKey, LPCWSTR lpSubKey, PHKEY phkResult) = RegOpenKey;
+
+LSTATUS WINAPI HookRegOpenKey(HKEY hKey, LPCWSTR lpSubKey, PHKEY phkResult)
+{
+    DisplayMessage(L"Open key " + (std::wstring)lpSubKey + L"\n");
+    return PRegOpenKey(hKey, lpSubKey, phkResult);
+}
+
+LSTATUS(WINAPI* PRegCloseKey) (HKEY hKey) = RegCloseKey;
+
+LSTATUS WINAPI HookRegCloseKey(HKEY hKey)
+{
+    DisplayMessage(L"Close key " + GetKeyPath(hKey) + L"\n");
+    return PRegCloseKey(hKey);
+}
+
+LSTATUS(WINAPI* PRegDeleteKey) (HKEY hKey, LPCWSTR lpSubKey) = RegDeleteKey;
+
+LSTATUS WINAPI HookRegDeleteKey(HKEY hKey, LPCWSTR lpSubKey)
+{
+    DisplayMessage(L"Delete key " + (std::wstring)lpSubKey + L"\n");
+    return PRegDeleteKey(hKey, lpSubKey);
+}
+
+LSTATUS(WINAPI* PRegGetValue) (HKEY hKey, LPCWSTR lpSubKey, LPCWSTR lpValue, DWORD dwFlags, LPDWORD pdwType, PVOID pvData, LPDWORD pcbData) = RegGetValue;
+
+LSTATUS WINAPI HookRegGetValue(HKEY hKey, LPCWSTR lpSubKey, LPCWSTR lpValue, DWORD dwFlags, LPDWORD pdwType, PVOID pvData, LPDWORD pcbData)
+{
+    DisplayMessage(L"Get value from key " + (std::wstring)lpSubKey + L"\n");
+    return PRegGetValue(hKey, lpSubKey, lpValue, dwFlags, pdwType, pvData, pcbData);
+}
+
+LSTATUS(WINAPI* PRegSetValue) (HKEY hKey, LPCWSTR lpSubKey, DWORD dwType, LPCWSTR lpData, DWORD cbData) = RegSetValue;
+
+LSTATUS WINAPI HookRegSetValue(HKEY hKey, LPCWSTR lpSubKey, DWORD dwType, LPCWSTR lpData, DWORD cbData)
+{
+    DisplayMessage(L"Set value " + (std::wstring)lpData + L" to key " + (std::wstring)lpSubKey + L"\n");
+    return PRegSetValue(hKey, lpSubKey, dwType, lpData, cbData);
+}
+
 BOOL APIENTRY DllMain( HMODULE hModule,
                        DWORD  ul_reason_for_call,
                        LPVOID lpReserved
@@ -61,6 +112,13 @@ BOOL APIENTRY DllMain( HMODULE hModule,
         DetourAttach(&(PVOID&)PWriteFile, HookWriteFile);
         DetourAttach(&(PVOID&)PReadFile, HookReadFile);
 
+        DetourAttach(&(PVOID&)PRegCreateKey, HookRegCreateKey);
+        DetourAttach(&(PVOID&)PRegOpenKey, HookRegOpenKey);
+        DetourAttach(&(PVOID&)PRegCloseKey, HookRegCloseKey);
+        DetourAttach(&(PVOID&)PRegDeleteKey, HookRegDeleteKey);
+        DetourAttach(&(PVOID&)PRegSetValue, HookRegSetValue);
+        DetourAttach(&(PVOID&)PRegGetValue, HookRegGetValue);
+
         DetourTransactionCommit();
         break;
     case DLL_THREAD_ATTACH:
@@ -76,12 +134,58 @@ BOOL APIENTRY DllMain( HMODULE hModule,
         DetourDetach(&(PVOID&)PWriteFile, HookWriteFile);
         DetourDetach(&(PVOID&)PReadFile, HookReadFile);
 
+        DetourDetach(&(PVOID&)PRegCreateKey, HookRegCreateKey);
+        DetourDetach(&(PVOID&)PRegOpenKey, HookRegOpenKey);
+        DetourDetach(&(PVOID&)PRegCloseKey, HookRegCloseKey);
+        DetourDetach(&(PVOID&)PRegDeleteKey, HookRegDeleteKey);
+        DetourDetach(&(PVOID&)PRegSetValue, HookRegSetValue);
+        DetourDetach(&(PVOID&)PRegGetValue, HookRegGetValue);
+
         DetourTransactionCommit();
 
         CloseHandle(hStdOut);
         break;
     }
     return TRUE;
+}
+
+std::wstring GetKeyPath(HKEY key)
+{
+    std::wstring keyPath;
+    if (key != NULL)
+    {
+        HMODULE dll = LoadLibrary(L"ntdll.dll");
+        if (dll != NULL) {
+            typedef DWORD(__stdcall* NtQueryKeyType) (HANDLE  KeyHandle, int KeyInformationClass, PVOID  KeyInformation, ULONG  Length, PULONG  ResultLength);
+
+            NtQueryKeyType ntQueryKeyAddress = reinterpret_cast<NtQueryKeyType>(::GetProcAddress(dll, "NtQueryKey"));
+
+            if (ntQueryKeyAddress != NULL) {
+                DWORD size = 0;
+                DWORD result = 0;
+                result = ntQueryKeyAddress(key, 3, 0, 0, &size);
+                if (result == ((LONG)0xC0000023L))
+                {
+                    size = size + 2;
+                    wchar_t* buffer = new (std::nothrow) wchar_t[size / sizeof(wchar_t)]; 
+                    if (buffer != NULL)
+                    {
+                        result = ntQueryKeyAddress(key, 3, buffer, size, &size);
+                        if (result == ((LONG)0x00000000L))
+                        {
+                            buffer[size / sizeof(wchar_t)] = L'\0';
+                            keyPath = std::wstring(buffer + 2);
+                        }
+
+                        delete[] buffer;
+                    }
+                }
+            }
+
+            FreeLibrary(dll);
+        }
+    }
+    return keyPath;
 }
 
 VOID DisplayMessage(std::wstring message)
